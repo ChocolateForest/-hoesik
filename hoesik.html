@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회식비 정산</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f0f4ff; min-height: 100vh; }
+.app { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+h1 { text-align: center; font-size: 22px; color: #333; margin: 16px 0 24px; }
+.emoji { font-size: 28px; display: block; text-align: center; margin-bottom: 4px; }
+.card { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+.card h2 { font-size: 15px; color: #555; margin-bottom: 14px; font-weight: 600; }
+.row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+input[type=text], input[type=number], select {
+  border: 1px solid #ddd; border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; width: 100%; outline: none; transition: border 0.2s; background: #fff;
+}
+input:focus, select:focus { border-color: #6c8fff; }
+.btn { border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; cursor: pointer; font-weight: 600; transition: 0.15s; }
+.btn-add { background: #e8edff; color: #4a6fff; white-space: nowrap; }
+.btn-add:hover { background: #d0d9ff; }
+.btn-primary { background: #4a6fff; color: #fff; width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; margin-top: 4px; border: none; cursor: pointer; font-weight: 700; }
+.btn-primary:hover { background: #3558f0; }
+.btn-kakao { background: #FEE500; color: #3C1E1E; width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; margin-top: 10px; border: none; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-kakao:hover { background: #f0d800; }
+.btn-copy { background: #f0f0f0; color: #333; width: 100%; padding: 12px; font-size: 14px; border-radius: 12px; margin-top: 8px; border: none; cursor: pointer; font-weight: 600; }
+.btn-reset { background: #fff; color: #999; border: 1px solid #ddd; width: 100%; padding: 10px; font-size: 13px; border-radius: 10px; margin-top: 8px; cursor: pointer; }
+.tag { display: inline-block; background: #f0f4ff; color: #4a6fff; border-radius: 20px; padding: 4px 12px; font-size: 13px; margin: 3px; cursor: pointer; user-select: none; transition: 0.15s; }
+.tag.off { background: #f0f0f0; color: #bbb; text-decoration: line-through; }
+.error { color: #ff4a4a; font-size: 13px; margin-top: 6px; display: none; }
+.round-card { background: #f8f9ff; border: 1.5px solid #e0e6ff; border-radius: 14px; padding: 14px; margin-bottom: 12px; position: relative; }
+.round-card.treat { border-color: #ffd6a5; background: #fffaf3; }
+.round-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.round-badge { border-radius: 20px; padding: 3px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; background: #4a6fff; color: #fff; }
+.round-badge.treat { background: #ff9500; }
+.round-del { position: absolute; top: 12px; right: 12px; background: #ffe8e8; color: #ff4a4a; border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-weight: 600; }
+.mode-select { display: flex; gap: 6px; margin-bottom: 12px; }
+.mode-btn { flex: 1; padding: 7px 4px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 12px; cursor: pointer; background: #fff; color: #888; text-align: center; font-weight: 500; transition: 0.15s; }
+.mode-btn.active { border-color: #4a6fff; background: #e8edff; color: #4a6fff; font-weight: 700; }
+.mode-btn.active.treat-mode { border-color: #ff9500; background: #fff3e0; color: #ff9500; }
+.participants-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+.n-info { font-size: 12px; color: #4a6fff; font-weight: 600; margin-left: 4px; }
+.treat-toggle { display: flex; align-items: center; gap: 8px; background: #fff3e0; border: 1.5px solid #ffd6a5; border-radius: 10px; padding: 10px 12px; margin-top: 8px; cursor: pointer; user-select: none; }
+.treat-toggle input[type=checkbox] { width: 18px; height: 18px; accent-color: #ff9500; cursor: pointer; }
+.treat-toggle label { font-size: 13px; color: #cc6600; font-weight: 600; cursor: pointer; }
+.treat-banner { background: #fff3e0; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #cc6600; font-weight: 600; text-align: center; margin-top: 8px; }
+.per-hint { font-size: 12px; color: #4a6fff; white-space: nowrap; min-width: 90px; }
+.summary-box { background: #f0f4ff; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; color: #555; }
+.summary-row.total { font-weight: 700; color: #333; font-size: 16px; border-top: 1px solid #ddd; padding-top: 8px; margin-top: 4px; }
+.result-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f0f0f0; }
+.result-item:last-child { border-bottom: none; }
+.result-name { font-size: 15px; color: #333; font-weight: 600; }
+.result-sub { font-size: 12px; color: #999; margin-top: 2px; }
+.result-amount { font-size: 16px; color: #4a6fff; font-weight: 700; }
+.result-amount.treat { color: #ff9500; }
+.transfer-item { background: #fff8e1; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 14px; color: #555; }
+.transfer-arrow { color: #ffa000; font-weight: 700; }
+.round-summary { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; color: #555; background: #f0f4ff; }
+.round-summary.treat { background: #fff3e0; color: #cc6600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <span class="emoji">🍻</span>
+  <h1>회식비 정산기</h1>
+
+  <div id="inputSection">
+    <div class="card">
+      <h2>👥 전체 참석자 추가</h2>
+      <div class="row">
+        <input type="text" id="nameInput" placeholder="이름 입력 후 추가" maxlength="10" onkeydown="if(event.key==='Enter')addMember()">
+        <button class="btn btn-add" onclick="addMember()">추가</button>
+      </div>
+      <div id="memberList"></div>
+      <div class="error" id="memberError">참석자를 2명 이상 추가해주세요.</div>
+    </div>
+    <div id="roundList"></div>
+    <button class="btn btn-add" style="width:100%;margin-bottom:12px" onclick="addRound()">+ 차수 추가</button>
+    <button class="btn btn-primary" onclick="calculate()">정산하기 →</button>
+  </div>
+
+  <div id="resultSection" style="display:none">
+    <div class="card">
+      <h2>📊 정산 결과</h2>
+      <div class="summary-box" id="summaryBox"></div>
+      <div id="roundBreakdown"></div>
+      <hr style="border:none;border-top:1px solid #eee;margin:12px 0">
+      <h2 style="margin-bottom:12px">👤 개인별 최종 부담액</h2>
+      <div id="resultList"></div>
+    </div>
+    <div class="card">
+      <h2>💸 송금 안내</h2>
+      <div id="transferList"></div>
+    </div>
+    <button class="btn btn-kakao" onclick="shareKakao()"><span style="font-size:20px">💬</span> 카카오톡으로 공유</button>
+    <button class="btn btn-copy" onclick="copyResult()">📋 클립보드 복사</button>
+    <button class="btn btn-reset" onclick="reset()">↩ 처음으로</button>
+  </div>
+</div>
+
+<script>
+let members = [];
+let rounds = [];
+let roundCounter = 0;
+
+// ── 멤버 ──────────────────────────────────────────
+function addMember() {
+  const inp = document.getElementById('nameInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (members.includes(name)) { alert('이미 있는 이름입니다.'); return; }
+  members.push(name);
+  inp.value = '';
+  rounds.forEach(r => { r.participants[name] = true; });
+  renderMembers();
+  renderAllRounds();
+}
+
+function removeMember(i) {
+  const name = members[i];
+  members.splice(i, 1);
+  rounds.forEach(r => { delete r.participants[name]; delete r.customPaid[name]; });
+  renderMembers();
+  renderAllRounds();
+}
+
+function renderMembers() {
+  document.getElementById('memberList').innerHTML = members.map((m, i) =>
+    `<span class="tag">${m} <span style="cursor:pointer;color:#aaa" onclick="removeMember(${i})">✕</span></span>`
+  ).join('');
+}
+
+// ── 차수 추가/삭제 ──────────────────────────────────
+function addRound() {
+  roundCounter++;
+  const participants = {};
+  members.forEach(m => participants[m] = true);
+  rounds.push({ id: roundCounter, label: `${roundCounter}차`, mode: 'dutch', amount: '', payer: '', treat: false, customPaid: {}, participants });
+  renderAllRounds();
+}
+
+function removeRound(id) {
+  rounds = rounds.filter(r => r.id !== id);
+  renderAllRounds();
+}
+
+// ── 구조 변경(모드·참석자·쏘기)만 full re-render ──
+function setMode(id, mode) {
+  const r = rounds.find(r => r.id === id);
+  r.mode = mode;
+  if (mode !== 'payer') r.treat = false;
+  renderAllRounds();
+}
+
+function toggleTreat(id) {
+  rounds.find(r => r.id === id).treat ^= true;
+  renderAllRounds();
+}
+
+function toggleParticipant(id, name) {
+  const r = rounds.find(r => r.id === id);
+  r.participants[name] = !r.participants[name];
+  renderAllRounds();
+}
+
+// ── 숫자 입력: 데이터만 저장, DOM은 hint만 갱신 ──
+function onAmountInput(id, val) {
+  const r = rounds.find(r => r.id === id);
+  r.amount = val;
+  // hint 텍스트만 업데이트 (re-render 없음)
+  const n = members.filter(m => r.participants[m]).length;
+  const amt = parseInt(val) || 0;
+  const hint = document.getElementById(`hint-${id}`);
+  if (hint) hint.textContent = (amt > 0 && n > 0 && !r.treat) ? `= 1인당 ${fmt(Math.round(amt / n))}원` : '';
+}
+
+function onPayerInput(id, val) {
+  rounds.find(r => r.id === id).payer = val;
+}
+
+function onLabelInput(id, val) {
+  rounds.find(r => r.id === id).label = val;
+  // badge 텍스트만 갱신
+  const badge = document.getElementById(`badge-${id}`);
+  if (badge) badge.textContent = val || `${id}차`;
+}
+
+function onCustomPaidInput(id, name, val) {
+  rounds.find(r => r.id === id).customPaid[name] = parseInt(val) || 0;
+}
+
+// ── Full render (구조 변경 시) ──────────────────────
+function renderAllRounds() {
+  const el = document.getElementById('roundList');
+  if (rounds.length === 0) {
+    el.innerHTML = `<p style="text-align:center;color:#aaa;font-size:13px;margin-bottom:12px">차수를 추가해주세요.</p>`;
+    return;
+  }
+  el.innerHTML = rounds.map(r => buildRoundHTML(r)).join('');
+}
+
+function buildRoundHTML(r) {
+  const active = members.filter(m => r.participants[m]);
+  const n = active.length;
+  const isTreat = r.mode === 'payer' && r.treat;
+  const amt = parseInt(r.amount) || 0;
+
+  const participantTags = members.length === 0
+    ? '<span style="color:#aaa;font-size:12px">참석자를 먼저 추가하세요</span>'
+    : members.map(m =>
+      `<span class="tag ${r.participants[m] ? '' : 'off'}" onclick="toggleParticipant(${r.id},'${m}')">${m}</span>`
+    ).join('');
+
+  const modeBtns = `<div class="mode-select">
+    <div class="mode-btn ${r.mode==='dutch'?'active':''}" onclick="setMode(${r.id},'dutch')">1/N 더치페이</div>
+    <div class="mode-btn ${r.mode==='payer'?'active':''}${isTreat?' treat-mode':''}" onclick="setMode(${r.id},'payer')">한 명이 결제</div>
+    <div class="mode-btn ${r.mode==='custom'?'active':''}" onclick="setMode(${r.id},'custom')">각자 다르게</div>
+  </div>`;
+
+  let body = '';
+  if (r.mode === 'dutch') {
+    const hint = (amt > 0 && n > 0) ? `= 1인당 ${fmt(Math.round(amt / n))}원` : '';
+    body = `<div class="row">
+      <input type="number" placeholder="총 금액 (원)" min="0" value="${r.amount}"
+        oninput="onAmountInput(${r.id},this.value)" inputmode="numeric">
+      <span class="per-hint" id="hint-${r.id}">${hint}</span>
+    </div>`;
+  } else if (r.mode === 'payer') {
+    const payerOpts = active.map(m => `<option value="${m}" ${r.payer===m?'selected':''}>${m}</option>`).join('');
+    const hint = (!isTreat && amt > 0 && n > 0) ? `1인당 ${fmt(Math.round(amt / n))}원` : '';
+    body = `
+      <div class="row">
+        <input type="number" placeholder="총 금액 (원)" min="0" value="${r.amount}"
+          oninput="onAmountInput(${r.id},this.value)" inputmode="numeric" ${isTreat?'style="background:#fff8f0"':''}>
+        <span class="per-hint" id="hint-${r.id}">${hint}</span>
+      </div>
+      <div class="row">
+        <label style="font-size:13px;color:#666;white-space:nowrap;min-width:52px">결제자</label>
+        <select onchange="onPayerInput(${r.id},this.value)" ${isTreat?'style="border-color:#ffd6a5"':''}>
+          <option value="">선택</option>${payerOpts}
+        </select>
+      </div>
+      <div class="treat-toggle" onclick="toggleTreat(${r.id})">
+        <input type="checkbox" ${r.treat?'checked':''} onclick="event.stopPropagation();toggleTreat(${r.id})">
+        <label>🎁 쏘는 거야! (청구 안 함)</label>
+      </div>
+      ${isTreat ? `<div class="treat-banner">🎉 ${r.payer||'결제자'}가 전체에게 쏩니다! 정산 제외</div>` : ''}`;
+  } else {
+    body = active.length === 0
+      ? '<p style="font-size:13px;color:#aaa">참석자를 선택해주세요.</p>'
+      : active.map(m => `
+        <div class="row">
+          <label style="min-width:52px;font-size:14px">${m}</label>
+          <input type="number" placeholder="낸 금액" min="0" value="${r.customPaid[m]||''}"
+            oninput="onCustomPaidInput(${r.id},'${m}',this.value)" inputmode="numeric">
+          <span style="font-size:13px;color:#888;white-space:nowrap">원</span>
+        </div>`).join('');
+  }
+
+  return `<div class="round-card ${isTreat?'treat':''}">
+    <div class="round-header">
+      <span class="round-badge ${isTreat?'treat':''}" id="badge-${r.id}">${isTreat?'🎁 ':''}${r.label}</span>
+      <input type="text" value="${r.label}" placeholder="차수 이름"
+        oninput="onLabelInput(${r.id},this.value)"
+        style="flex:1;font-size:13px;padding:6px 10px">
+    </div>
+    <button class="round-del" onclick="removeRound(${r.id})">삭제</button>
+    <div style="margin-bottom:10px">
+      <div class="participants-label">참석자 선택 (탭하여 제외/포함) <span class="n-info">N = ${n}명</span></div>
+      <div>${participantTags}</div>
+    </div>
+    ${modeBtns}
+    ${body}
+  </div>`;
+}
+
+// ── 정산 계산 ──────────────────────────────────────
+function calculate() {
+  document.querySelectorAll('.error').forEach(e => e.style.display = 'none');
+  if (members.length < 2) { document.getElementById('memberError').style.display = 'block'; return; }
+  if (rounds.length === 0) { alert('차수를 1개 이상 추가해주세요.'); return; }
+
+  for (const r of rounds) {
+    const active = members.filter(m => r.participants[m]);
+    if (active.length < 1) { alert(`${r.label}: 참석자를 1명 이상 선택해주세요.`); return; }
+    if (r.mode === 'payer' && r.treat) continue;
+    if (r.mode !== 'custom') {
+      if (!r.amount || parseInt(r.amount) <= 0) { alert(`${r.label}: 금액을 입력해주세요.`); return; }
+      if (r.mode === 'payer' && !r.payer) { alert(`${r.label}: 결제자를 선택해주세요.`); return; }
+    } else {
+      if (active.reduce((s, m) => s + (r.customPaid[m] || 0), 0) <= 0) { alert(`${r.label}: 금액을 입력해주세요.`); return; }
+    }
+  }
+
+  let balance = {}, personalShare = {};
+  members.forEach(m => { balance[m] = 0; personalShare[m] = 0; });
+  let grandTotal = 0, roundSummaries = [];
+
+  for (const r of rounds) {
+    const active = members.filter(m => r.participants[m]);
+    const n = active.length;
+
+    if (r.mode === 'payer' && r.treat) {
+      roundSummaries.push({ label: r.label, total: parseInt(r.amount)||0, desc: `🎁 ${r.payer||'?'} 쏨! 정산 제외`, treat: true });
+      continue;
+    }
+
+    let rTotal = 0, rDesc = '';
+    if (r.mode === 'dutch') {
+      rTotal = parseInt(r.amount);
+      const per = Math.round(rTotal / n);
+      active.forEach(m => { balance[m] -= per; personalShare[m] += per; });
+      rDesc = `참석 ${n}명 1/N → 1인당 ${fmt(per)}원`;
+    } else if (r.mode === 'payer') {
+      rTotal = parseInt(r.amount);
+      const per = Math.round(rTotal / n);
+      active.forEach(m => { balance[m] -= per; personalShare[m] += per; });
+      balance[r.payer] += rTotal;
+      rDesc = `참석 ${n}명, ${r.payer} 전체 결제 → 1인당 ${fmt(per)}원`;
+    } else {
+      rTotal = active.reduce((s, m) => s + (r.customPaid[m] || 0), 0);
+      const per = Math.round(rTotal / n);
+      active.forEach(m => { balance[m] += (r.customPaid[m]||0) - per; personalShare[m] += per; });
+      rDesc = `참석 ${n}명 각자 다르게 → 1인당 ${fmt(per)}원`;
+    }
+    grandTotal += rTotal;
+    roundSummaries.push({ label: r.label, total: rTotal, desc: rDesc, treat: false });
+  }
+
+  const billRounds = roundSummaries.filter(r => !r.treat);
+  const treatRounds = roundSummaries.filter(r => r.treat);
+  let sumHTML = billRounds.map(rs => `<div class="summary-row"><span>${rs.label}</span><span>${fmt(rs.total)}원</span></div>`).join('');
+  if (treatRounds.length) sumHTML += treatRounds.map(rs =>
+    `<div class="summary-row" style="color:#cc6600"><span>${rs.label} 🎁</span><span>${rs.total > 0 ? fmt(rs.total)+'원 (쏨)' : '쏨'}</span></div>`
+  ).join('');
+  sumHTML += `<div class="summary-row total"><span>정산 총합계</span><span>${fmt(grandTotal)}원</span></div>`;
+  document.getElementById('summaryBox').innerHTML = sumHTML;
+
+  document.getElementById('roundBreakdown').innerHTML = roundSummaries.map(rs =>
+    `<div class="round-summary ${rs.treat?'treat':''}">📌 <b>${rs.label}</b>${rs.total > 0 ? ' ' + fmt(rs.total) + '원' : ''} — ${rs.desc}</div>`
+  ).join('');
+
+  document.getElementById('resultList').innerHTML = members.map(m => {
+    const share = personalShare[m], b = balance[m];
+    const isFree = share === 0;
+    const diffLabel = isFree
+      ? `<span style="color:#ff9500;font-size:12px;font-weight:600">🎁 쏨 혜택 받음</span>`
+      : b > 0 ? `<span style="color:#2ecc71;font-size:12px;font-weight:600">+${fmt(b)}원 받을 돈</span>`
+      : b < 0 ? `<span style="color:#ff5c5c;font-size:12px;font-weight:600">${fmt(Math.abs(b))}원 낼 돈</span>`
+      : `<span style="color:#aaa;font-size:12px">정산 완료</span>`;
+    return `<div class="result-item">
+      <div><div class="result-name">${m}</div><div class="result-sub">${diffLabel}</div></div>
+      <div class="result-amount ${isFree?'treat':''}">${isFree ? '0원 🎁' : fmt(share)+'원'}</div>
+    </div>`;
+  }).join('');
+
+  const transfers = calcTransfers({ ...balance });
+  document.getElementById('transferList').innerHTML = transfers.length === 0
+    ? '<p style="color:#aaa;font-size:13px">모두 정산 완료!</p>'
+    : transfers.map(t => `<div class="transfer-item"><b>${t.from}</b> <span class="transfer-arrow">→</span> <b>${t.to}</b> 에게 <b style="color:#4a6fff">${fmt(t.amt)}원</b> 송금</div>`).join('');
+
+  window._shareText = buildShareText(grandTotal, roundSummaries, members, personalShare, balance, transfers);
+  document.getElementById('inputSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = '';
+}
+
+function calcTransfers(bal) {
+  let cr = [], db = [];
+  Object.entries(bal).forEach(([n, v]) => { if (v > 1) cr.push({name:n,amt:v}); else if (v < -1) db.push({name:n,amt:-v}); });
+  let out = [], ci = 0, di = 0;
+  while (ci < cr.length && di < db.length) {
+    const s = Math.min(cr[ci].amt, db[di].amt);
+    if (s > 1) out.push({ from: db[di].name, to: cr[ci].name, amt: Math.round(s) });
+    cr[ci].amt -= s; db[di].amt -= s;
+    if (cr[ci].amt <= 1) ci++; if (db[di].amt <= 1) di++;
+  }
+  return out;
+}
+
+function buildShareText(grandTotal, roundSummaries, members, personalShare, balance, transfers) {
+  let t = `🍻 회식비 정산 결과\n${'─'.repeat(22)}\n💰 정산 합계: ${fmt(grandTotal)}원\n\n`;
+  roundSummaries.forEach(rs => {
+    t += rs.treat ? `🎁 ${rs.label}: ${rs.total > 0 ? fmt(rs.total)+'원 ' : ''}${rs.desc}\n`
+                  : `📌 ${rs.label}: ${fmt(rs.total)}원 — ${rs.desc}\n`;
+  });
+  t += `\n👤 개인별 부담\n`;
+  members.forEach(m => {
+    const b = balance[m], s = personalShare[m];
+    const tag = s === 0 ? ' 🎁 쏨 혜택' : b > 0 ? ` (+${fmt(b)}원 받을 돈)` : b < 0 ? ` (${fmt(Math.abs(b))}원 낼 돈)` : '';
+    t += `• ${m}: ${s === 0 ? '0원' : fmt(s)+'원'}${tag}\n`;
+  });
+  if (transfers.length) { t += `\n💸 송금 안내\n`; transfers.forEach(tr => t += `• ${tr.from} → ${tr.to}: ${fmt(tr.amt)}원\n`); }
+  return t + `${'─'.repeat(22)}\n🍺 회식비 정산기`;
+}
+
+function shareKakao() {
+  const text = window._shareText || '';
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    const start = Date.now();
+    window.location.href = `kakaotalk://msg/send?text=${encodeURIComponent(text)}`;
+    setTimeout(() => { if (Date.now() - start < 1800) { copyToClipboard(text); alert('📋 복사되었습니다!\n카카오톡 채팅방에 붙여넣기 해주세요.'); } }, 1500);
+  } else {
+    copyToClipboard(text);
+    alert('📋 정산 내역이 복사되었습니다!\n카카오톡 채팅방에 붙여넣기(Ctrl+V) 해주세요.');
+  }
+}
+
+function copyResult() { copyToClipboard(window._shareText || ''); }
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text)
+    .then(() => alert('📋 복사되었습니다!'))
+    .catch(() => { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('📋 복사되었습니다!'); });
+}
+
+function reset() {
+  members = []; rounds = []; roundCounter = 0;
+  renderMembers(); renderAllRounds();
+  document.getElementById('inputSection').style.display = '';
+  document.getElementById('resultSection').style.display = 'none';
+}
+
+function fmt(n) { return Math.abs(Math.round(n)).toLocaleString('ko-KR'); }
+
+addRound(); addRound();
+rounds[0].label = '1차'; rounds[1].label = '2차';
+renderAllRounds();
+</script>
+</body>
+</html>
